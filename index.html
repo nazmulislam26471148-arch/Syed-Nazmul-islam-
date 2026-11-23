@@ -120,6 +120,32 @@ document.getElementById("status").innerText="Stopped";
 }
 }
 </script>
+<script>
+async function translateAndSpeak(text) {
+  const target = document.getElementById("targetLanguage").value;
 
+  try {
+    const url = "https://api.mymemory.translated.net/get?q="
+      + encodeURIComponent(text)
+      + "&langpair=bn|" + target;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    const translated = data.responseData.translatedText;
+
+    document.getElementById("translationResult").innerText = translated;
+
+    const speech = new SpeechSynthesisUtterance(translated);
+    speech.lang = target === "de" ? "de-DE"
+      : target === "es" ? "es-ES" : "en-US";
+
+    speechSynthesis.speak(speech);
+
+  } catch (error) {
+    alert("অনুবাদ করা যাচ্ছে না। ইন্টারনেট সংযোগ পরীক্ষা করুন।");
+  }
+}
+</script>
 </body>
 </html>
