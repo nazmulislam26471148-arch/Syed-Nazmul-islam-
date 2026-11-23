@@ -68,10 +68,10 @@ button{
 
 <label>যে ভাষায় অনুবাদ চান</label>
 <select id="to">
-<option value="de">Deutsch - German</option>
 <option value="en">English</option>
-<option value="bn">বাংলা</option>
+<option value="de">Deutsch - German</option>
 <option value="es">Español - Spanish</option>
+<option value="bn">বাংলা</option>
 </select>
 
 <label>আপনার কথা</label>
@@ -108,15 +108,14 @@ button{
 
 <button class="stop" onclick="endMeeting()">⏹ কল বন্ধ করুন</button>
 
-<p class="note">Smart Live Translator | Version 5.0</p>
-
+<p class="note">Smart Live Translator | Version 6.0</p>
 </div>
 
 <script>
 let recognition=null;
 let lastTranslation="";
 let meetingAPI=null;
-let busy=false;
+let translationQueue=Promise.resolve();
 
 const speechLanguages={
  bn:"bn-BD",
@@ -131,126 +130,190 @@ function swapLanguages(){
  const old=f.value;
  f.value=t.value;
  t.value=old;
+ lastTranslation="";
+ document.getElementById("translationResult").innerText=
+ "অনুবাদ এখানে দেখা যাবে";
+}
+
+async function googleTranslate(text,from,to){
+
+ const params=new URLSearchParams({
+  client:"gtx",
+  sl:from,
+  tl:to,
+  dt:"t",
+  q:text
+ });
+
+ const url=
+ "https://translate.googleapis.com/translate_a/single?"+
+ params.toString();
+
+ const response=await fetch(url);
+
+ if(!response.ok){
+  throw new Error("Translation server error");
+ }
+
+ const data=await response.json();
+
+ if(!Array.isArray(data)||!Array.isArray(data[0])){
+  throw new Error("Invalid translation");
+ }
+
+ const translated=data[0]
+ .map(item=>item&&item[0]?item[0]:"")
+ .join("");
+
+ if(!translated.trim()){
+  throw new Error("Empty translation");
+ }
+
+ return translated;
+}
+
+async function translateText(){
+
+ const text=document.getElementById("speech").value.trim();
+
+ if(!text){
+  alert("আগে কিছু লিখুন।");
+  return;
+ }
+
+ await translateAndSpeak(text);
+}
+
+function translateAndSpeak(text){
+
+ const task=translationQueue.then(async()=>{
+
+  const from=document.getElementById("from").value;
+  const to=document.getElementById("to").value;
+
+  if(from===to){
+   document.getElementById("status").innerText=
+   "দুটি ভিন্ন ভাষা নির্বাচন করুন";
+   return;
+  }
+
+  if(text.length>450){
+   document.getElementById("status").innerText=
+   "একবারে ৪৫০ অক্ষরের কম লিখুন";
+   return;
+  }
+
+  document.getElementById("status").innerText=
+  "অনুবাদ হচ্ছে...";
+
+  try{
+
+   const result=await googleTranslate(text,from,to);
+
+   lastTranslation=result;
+
+   document.getElementById("translationResult").innerText=result;
+
+   document.getElementById("status").innerText=
+   "অনুবাদ সম্পন্ন";
+
+   speakTranslation();
+
+  }catch(error){
+
+   document.getElementById("status").innerText=
+   "অনুবাদ ব্যর্থ হয়েছে";
+
+   console.error(error);
+
+  }
+
+ });
+
+ translationQueue=task.catch(()=>{});
+
+ return task;
 }
 
 function startSpeech(){
- const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+
+ const SR=window.SpeechRecognition||
+ window.webkitSpeechRecognition;
 
  if(!SR){
   alert("Google Chrome ব্যবহার করুন।");
   return;
  }
 
- if(recognition) recognition.abort();
+ if(recognition){
+  recognition.abort();
+ }
 
  recognition=new SR();
- recognition.lang=speechLanguages[document.getElementById("from").value];
+
+ recognition.lang=
+ speechLanguages[document.getElementById("from").value];
+
  recognition.continuous=true;
  recognition.interimResults=false;
 
  recognition.onstart=()=>{
-  document.getElementById("status").innerText="🎤 শুনছি...";
+  document.getElementById("status").innerText=
+  "🎤 আপনার কথা শুনছি...";
  };
 
  recognition.onresult=(event)=>{
-  let text="";
 
   for(let i=event.resultIndex;i<event.results.length;i++){
-   if(event.results[i].isFinal){
-    text+=event.results[i][0].transcript+" ";
-   }
-  }
 
-  if(text.trim()){
-   const box=document.getElementById("speech");
-   box.value+=(box.value?" ":"")+text.trim();
-   translateAndSpeak(text.trim());
+   if(event.results[i].isFinal){
+
+    const text=event.results[i][0].transcript.trim();
+
+    if(text){
+
+     const box=document.getElementById("speech");
+
+     box.value+=(box.value?" ":"")+text;
+
+     translateAndSpeak(text);
+    }
+   }
   }
  };
 
  recognition.onerror=(event)=>{
-  document.getElementById("status").innerText="Microphone: "+event.error;
+  document.getElementById("status").innerText=
+  "Microphone: "+event.error;
  };
 
  recognition.onend=()=>{
-  document.getElementById("status").innerText="শোনা বন্ধ হয়েছে";
+  document.getElementById("status").innerText=
+  "শোনা বন্ধ হয়েছে";
  };
 
  try{
   recognition.start();
  }catch(e){
-  document.getElementById("status").innerText="মাইক্রোফোন চালু করা যায়নি";
+  document.getElementById("status").innerText=
+  "মাইক্রোফোন চালু করা যায়নি";
  }
 }
 
 function stopSpeech(){
- if(recognition) recognition.stop();
+
+ if(recognition){
+  recognition.stop();
+ }
+
  window.speechSynthesis.cancel();
- document.getElementById("status").innerText="বন্ধ হয়েছে";
-}
 
-async function translateText(){
- const text=document.getElementById("speech").value.trim();
- if(!text){
-  alert("আগে কিছু লিখুন।");
-  return;
- }
- await translateAndSpeak(text);
-}
-
-async function translateAndSpeak(text){
- if(busy)return;
-
- const from=document.getElementById("from").value;
- const to=document.getElementById("to").value;
-
- if(from===to){
-  alert("দুটি ভিন্ন ভাষা নির্বাচন করুন।");
-  return;
- }
-
- if(text.length>450){
-  alert("একবারে ৪৫০ অক্ষরের কম লিখুন।");
-  return;
- }
-
- busy=true;
- document.getElementById("status").innerText="অনুবাদ হচ্ছে...";
-
- try{
-  const params=new URLSearchParams({
-   q:text,
-   langpair:from+"|"+to
-  });
-
-  const response=await fetch(
-   "https://api.mymemory.translated.net/get?"+params
-  );
-
-  if(!response.ok)throw new Error("Network error");
-
-  const data=await response.json();
-
-  if(!data.responseData||!data.responseData.translatedText){
-   throw new Error("Translation failed");
-  }
-
-  lastTranslation=data.responseData.translatedText;
-
-  document.getElementById("translationResult").innerText=lastTranslation;
-  document.getElementById("status").innerText="অনুবাদ সম্পন্ন";
-
-  speakTranslation();
-
- }catch(e){
-  document.getElementById("status").innerText="অনুবাদ ব্যর্থ";
-  alert("ইন্টারনেট পরীক্ষা করুন অথবা পরে চেষ্টা করুন।");
- }finally{
-  busy=false;
- }
+ document.getElementById("status").innerText=
+ "কথা বলা বন্ধ হয়েছে";
 }
 
 function speakTranslation(){
+
  if(!lastTranslation){
   alert("আগে অনুবাদ করুন।");
   return;
@@ -259,23 +322,37 @@ function speakTranslation(){
  window.speechSynthesis.cancel();
 
  const voice=new SpeechSynthesisUtterance(lastTranslation);
- voice.lang=speechLanguages[document.getElementById("to").value];
+
+ voice.lang=speechLanguages[
+ document.getElementById("to").value
+ ];
+
  voice.rate=0.9;
 
  window.speechSynthesis.speak(voice);
 }
 
 function clearText(){
+
  document.getElementById("speech").value="";
- document.getElementById("translationResult").innerText="অনুবাদ এখানে দেখা যাবে";
+
+ document.getElementById("translationResult").innerText=
+ "অনুবাদ এখানে দেখা যাবে";
+
  lastTranslation="";
+
  window.speechSynthesis.cancel();
+
  document.getElementById("status").innerText="Ready";
 }
 
 function createRoom(){
- const room="SmartLive-"+Math.random().toString(36).substring(2,12);
+
+ const room="SmartLive-"+
+ Math.random().toString(36).substring(2,12);
+
  document.getElementById("roomCode").value=room;
+
  alert("রুম কোড: "+room);
 }
 
@@ -288,6 +365,7 @@ function joinVideo(){
 }
 
 function startMeeting(audioOnly){
+
  const room=document.getElementById("roomCode").value.trim();
  const name=document.getElementById("userName").value.trim();
 
@@ -301,7 +379,9 @@ function startMeeting(audioOnly){
   return;
  }
 
- if(meetingAPI)meetingAPI.dispose();
+ if(meetingAPI){
+  meetingAPI.dispose();
+ }
 
  document.getElementById("meet").innerHTML="";
 
@@ -317,20 +397,26 @@ function startMeeting(audioOnly){
   }
  });
 
- document.getElementById("meetingStatus").innerText="মিটিং সংযোগ হচ্ছে...";
+ document.getElementById("meetingStatus").innerText=
+ "মিটিং সংযোগ হচ্ছে...";
 
  meetingAPI.addListener("videoConferenceJoined",()=>{
-  document.getElementById("meetingStatus").innerText="মিটিং চালু হয়েছে";
+  document.getElementById("meetingStatus").innerText=
+  "মিটিং চালু হয়েছে";
  });
 }
 
 function endMeeting(){
+
  if(meetingAPI){
   meetingAPI.dispose();
   meetingAPI=null;
  }
+
  document.getElementById("meet").innerHTML="";
- document.getElementById("meetingStatus").innerText="মিটিং শেষ হয়েছে";
+
+ document.getElementById("meetingStatus").innerText=
+ "মিটিং শেষ হয়েছে";
 }
 </script>
 
