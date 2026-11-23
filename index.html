@@ -97,6 +97,7 @@ button:active {
   margin-top: 12px;
   color: #087a37;
   font-weight: bold;
+  overflow-wrap: anywhere;
 }
 
 </style>
@@ -130,9 +131,14 @@ button:active {
 <option value="es">Español (Spanish)</option>
 </select>
 
+<button onclick="swapLanguages()">
+🔄 ভাষা পরিবর্তন
+</button>
+
 <label>আপনার কথা অথবা লেখা</label>
 
-<textarea id="input" placeholder="এখানে লিখুন অথবা মাইক্রোফোনে কথা বলুন"></textarea>
+<textarea id="input"
+placeholder="এখানে লিখুন অথবা মাইক্রোফোনে কথা বলুন"></textarea>
 
 <button onclick="translateText()">
 🌐 অনুবাদ করুন
@@ -148,7 +154,9 @@ button:active {
 
 <label>অনুবাদের ফলাফল</label>
 
-<textarea id="output" readonly placeholder="অনুবাদ এখানে দেখা যাবে"></textarea>
+<textarea id="output"
+readonly
+placeholder="অনুবাদ এখানে দেখা যাবে"></textarea>
 
 <button class="orange" onclick="speakText()">
 🔊 অনুবাদ শুনুন
@@ -164,7 +172,9 @@ button:active {
 
 <h2>📞 অডিও ও ভিডিও কল</h2>
 
-<p>একটি কনফারেন্স রুম তৈরি করুন অথবা একই রুমের লিংক শেয়ার করুন।</p>
+<p>
+একটি কনফারেন্স রুম তৈরি করুন অথবা একই রুমের লিংক শেয়ার করুন।
+</p>
 
 <input id="room" placeholder="Conference Room Name">
 
@@ -188,6 +198,8 @@ button:active {
 
 let recognition;
 let currentRoom = "";
+let isListening = false;
+let requestNumber = 0;
 
 const languages = {
   bn: "bn-BD",
@@ -196,12 +208,38 @@ const languages = {
   es: "es-ES"
 };
 
+// ভাষা পরিবর্তন
+
+function swapLanguages() {
+
+  const source = document.getElementById("source");
+  const target = document.getElementById("target");
+
+  const oldSource = source.value;
+
+  source.value = target.value;
+  target.value = oldSource;
+
+  const input = document.getElementById("input");
+  const output = document.getElementById("output");
+
+  input.value = output.value;
+  output.value = "";
+
+  setStatus("ভাষা পরিবর্তন হয়েছে");
+
+}
+
+// Google Translate অনুবাদ
+
 async function translateText() {
 
   const text = document.getElementById("input").value.trim();
 
   const source = document.getElementById("source").value;
   const target = document.getElementById("target").value;
+
+  const output = document.getElementById("output");
 
   if (!text) {
     alert("প্রথমে কিছু লিখুন অথবা কথা বলুন।");
@@ -213,37 +251,57 @@ async function translateText() {
     return;
   }
 
-  document.getElementById("status").innerText =
-    "অনুবাদ হচ্ছে...";
+  const thisRequest = ++requestNumber;
+
+  setStatus("Google Translate দিয়ে অনুবাদ হচ্ছে...");
 
   try {
 
     const url =
-      "https://api.mymemory.translated.net/get?q=" +
-      encodeURIComponent(text) +
-      "&langpair=" + source + "|" + target;
+      "https://translate.googleapis.com/translate_a/single" +
+      "?client=gtx" +
+      "&sl=" + source +
+      "&tl=" + target +
+      "&dt=t" +
+      "&q=" + encodeURIComponent(text);
 
     const response = await fetch(url);
 
-    const data = await response.json();
-
-    if (data.responseStatus !== 200) {
-      throw new Error("Translation failed");
+    if (!response.ok) {
+      throw new Error("Translation service unavailable");
     }
 
-    document.getElementById("output").value =
-      data.responseData.translatedText;
+    const data = await response.json();
 
-    document.getElementById("status").innerText =
-      "অনুবাদ সম্পন্ন হয়েছে";
+    if (!Array.isArray(data) || !Array.isArray(data[0])) {
+      throw new Error("Invalid translation response");
+    }
+
+    const translated = data[0]
+      .map(item => item && item[0] ? item[0] : "")
+      .join("");
+
+    if (!translated.trim()) {
+      throw new Error("Empty translation");
+    }
+
+    if (thisRequest !== requestNumber) return;
+
+    output.value = translated;
+
+    setStatus("অনুবাদ সম্পন্ন হয়েছে");
 
   } catch (error) {
 
-    document.getElementById("status").innerText =
-      "অনুবাদ করা যায়নি। ইন্টারনেট পরীক্ষা করুন।";
+    if (thisRequest !== requestNumber) return;
+
+    setStatus("অনুবাদ ব্যর্থ। ইন্টারনেট সংযোগ পরীক্ষা করুন।");
 
   }
+
 }
+
+// মাইক্রোফোন
 
 function startVoice() {
 
@@ -252,9 +310,13 @@ function startVoice() {
     window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-    alert("আপনার ব্রাউজারে Voice Recognition সমর্থিত নয়। Chrome ব্যবহার করুন।");
+
+    alert("Chrome ব্রাউজার ব্যবহার করুন।");
+
     return;
   }
+
+  if (isListening) return;
 
   recognition = new SpeechRecognition();
 
@@ -268,8 +330,11 @@ function startVoice() {
 
     let text = "";
 
-    for (let i = event.resultIndex;
-         i < event.results.length; i++) {
+    for (
+      let i = event.resultIndex;
+      i < event.results.length;
+      i++
+    ) {
 
       if (event.results[i].isFinal) {
         text += event.results[i][0].transcript + " ";
@@ -289,40 +354,62 @@ function startVoice() {
 
   };
 
-  recognition.onerror = function() {
-    document.getElementById("status").innerText =
-      "মাইক্রোফোনে সমস্যা হয়েছে";
+  recognition.onerror = function(event) {
+
+    setStatus("মাইক্রোফোন সমস্যা: " + event.error);
+
   };
 
   recognition.onend = function() {
-    document.getElementById("status").innerText =
-      "মাইক্রোফোন বন্ধ হয়েছে";
+
+    isListening = false;
+
+    setStatus("মাইক্রোফোন বন্ধ হয়েছে");
+
   };
 
-  recognition.start();
+  try {
 
-  document.getElementById("status").innerText =
-    "আপনার কথা শুনছি...";
+    recognition.start();
+
+    isListening = true;
+
+    setStatus("আপনার কথা শুনছি...");
+
+  } catch (error) {
+
+    setStatus("মাইক্রোফোন চালু করা যায়নি");
+
+  }
 
 }
+
+// মাইক্রোফোন বন্ধ
 
 function stopVoice() {
 
-  if (recognition) {
+  if (recognition && isListening) {
+
     recognition.stop();
+
+    isListening = false;
+
   }
 
-  document.getElementById("status").innerText =
-    "কথা বলা বন্ধ হয়েছে";
+  setStatus("কথা বলা বন্ধ হয়েছে");
 
 }
+
+// অনুবাদ শুনুন
 
 function speakText() {
 
   const text = document.getElementById("output").value;
 
   if (!text) {
+
     alert("প্রথমে অনুবাদ করুন।");
+
     return;
   }
 
@@ -339,75 +426,109 @@ function speakText() {
 
 }
 
+// কপি
+
 function copyText() {
 
   const text = document.getElementById("output").value;
 
   if (!text) return;
 
-  navigator.clipboard.writeText(text)
-    .then(() => alert("কপি হয়েছে"))
-    .catch(() => alert("কপি করা যায়নি"));
+  copyToClipboard(text);
 
 }
+
+// ভিডিও কনফারেন্স
 
 function createRoom() {
 
   const name = document.getElementById("room").value.trim();
 
   if (!name) {
+
     alert("একটি রুমের নাম লিখুন।");
+
     return;
   }
 
   currentRoom = name.replace(/[^a-zA-Z0-9_-]/g, "-");
 
-  window.open(
-    "https://meet.jit.si/" +
-    encodeURIComponent(currentRoom),
-    "_blank"
-  );
+  const link =
+    "https://meet.jit.si/" + encodeURIComponent(currentRoom);
+
+  window.open(link, "_blank");
 
 }
+
+// অডিও কনফারেন্স
 
 function audioRoom() {
 
   const name = document.getElementById("room").value.trim();
 
   if (!name) {
+
     alert("একটি রুমের নাম লিখুন।");
+
     return;
   }
 
   currentRoom = name.replace(/[^a-zA-Z0-9_-]/g, "-");
 
-  window.open(
+  const link =
     "https://meet.jit.si/" +
     encodeURIComponent(currentRoom) +
-    "#config.startWithVideoMuted=true",
-    "_blank"
-  );
+    "#config.startWithVideoMuted=true";
+
+  window.open(link, "_blank");
 
 }
 
+// রুম লিংক কপি
+
 function copyRoom() {
 
-  if (!currentRoom) {
-    const name = document.getElementById("room").value.trim();
+  const name = document.getElementById("room").value.trim();
 
-    if (!name) {
-      alert("প্রথমে রুমের নাম লিখুন।");
-      return;
-    }
+  if (!name) {
 
-    currentRoom = name.replace(/[^a-zA-Z0-9_-]/g, "-");
+    alert("প্রথমে রুমের নাম লিখুন।");
+
+    return;
   }
 
-  const link = "https://meet.jit.si/" + encodeURIComponent(currentRoom);
+  currentRoom = name.replace(/[^a-zA-Z0-9_-]/g, "-");
 
-  navigator.clipboard.writeText(link)
-    .then(() => alert("কনফারেন্স লিংক কপি হয়েছে।"))
-    .catch(() => alert("লিংক কপি করা যায়নি।"));
+  const link =
+    "https://meet.jit.si/" + encodeURIComponent(currentRoom);
+
+  copyToClipboard(link);
+
+}
+
+// কপি ফাংশন
+
+async function copyToClipboard(text) {
+
+  try {
+
+    await navigator.clipboard.writeText(text);
+
+    alert("কপি হয়েছে");
+
+  } catch (error) {
+
+    alert("কপি করা যায়নি।");
+
+  }
+
+}
+
+// স্ট্যাটাস
+
+function setStatus(message) {
+
+  document.getElementById("status").innerText = message;
 
 }
 
