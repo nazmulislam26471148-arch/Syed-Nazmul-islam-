@@ -386,7 +386,101 @@ function speakTranslation() {
 
   window.speechSynthesis.speak(voice);
 }
+let meetingAPI = null;
 
+function createRoom() {
+
+  const room =
+    "SmartLive-" +
+    Math.random().toString(36).substring(2, 12);
+
+  document.getElementById("roomCode").value = room;
+
+  alert("আপনার মিটিং রুম কোড: " + room);
+}
+
+function joinAudio() {
+  startMeeting(true);
+}
+
+function joinVideo() {
+  startMeeting(false);
+}
+
+function startMeeting(audioOnly) {
+
+  const room =
+    document.getElementById("roomCode").value.trim();
+
+  const name =
+    document.getElementById("userName").value.trim();
+
+  if (!room || !name) {
+    alert("নাম এবং মিটিং রুম কোড লিখুন।");
+    return;
+  }
+
+  if (typeof JitsiMeetExternalAPI === "undefined") {
+    alert("মিটিং সার্ভার সংযোগ হচ্ছে না।");
+    return;
+  }
+
+  if (meetingAPI) {
+    meetingAPI.dispose();
+  }
+
+  document.getElementById("meet").innerHTML = "";
+
+  const options = {
+
+    roomName: room,
+
+    width: "100%",
+    height: 500,
+
+    parentNode:
+      document.getElementById("meet"),
+
+    userInfo: {
+      displayName: name
+    },
+
+    configOverwrite: {
+      startWithAudioMuted: false,
+      startWithVideoMuted: audioOnly
+    }
+  };
+
+  meetingAPI =
+    new JitsiMeetExternalAPI(
+      "meet.jit.si",
+      options
+    );
+
+  document.getElementById("meetingStatus").innerText =
+    "মিটিং সংযোগ হচ্ছে...";
+  
+  meetingAPI.addListener(
+    "videoConferenceJoined",
+    function() {
+      document.getElementById("meetingStatus").innerText =
+        "আপনি মিটিংয়ে যুক্ত হয়েছেন";
+    }
+  );
+}
+
+function endMeeting() {
+
+  if (meetingAPI) {
+    meetingAPI.dispose();
+    meetingAPI = null;
+  }
+
+  document.getElementById("meet").innerHTML = "";
+
+  document.getElementById("meetingStatus").innerText =
+    "মিটিং শেষ হয়েছে";
+}
 function clearText() {
 
   document.getElementById("speech").value = "";
