@@ -2,176 +2,407 @@
 <html lang="bn">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WorldTalk AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Smart Live Translator</title>
+
 <style>
-body{margin:0;font-family:Arial;background:#eef3f9;color:#17324d}
-header{background:#123c69;color:white;text-align:center;padding:25px}
-main{max-width:600px;margin:20px auto;padding:15px}
-.card{background:white;padding:20px;margin:15px 0;border-radius:14px;box-shadow:0 2px 10px #0001}
-button,select,textarea{width:100%;padding:13px;margin:8px 0;border-radius:8px;font-size:16px}
-button{background:#1264a3;color:white;border:0}
-.green{background:#16834a}
-textarea{height:100px;box-sizing:border-box}
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 15px;
+  font-family: Arial, sans-serif;
+  background: #edf3fa;
+  color: #17243a;
+}
+
+.container {
+  max-width: 650px;
+  margin: 20px auto;
+  background: white;
+  padding: 22px;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px #0002;
+}
+
+h1 {
+  text-align: center;
+  color: #0759b5;
+  font-size: 26px;
+}
+
+.subtitle {
+  text-align: center;
+  color: #666;
+}
+
+label {
+  display: block;
+  margin-top: 17px;
+  font-weight: bold;
+}
+
+select, textarea {
+  width: 100%;
+  padding: 13px;
+  margin-top: 8px;
+  border: 1px solid #bbb;
+  border-radius: 9px;
+  font-size: 16px;
+}
+
+textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 9px;
+  background: #0759b5;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:active {
+  opacity: 0.8;
+}
+
+.swap {
+  background: #53677e;
+}
+
+.mic {
+  background: #07864c;
+}
+
+.stop {
+  background: #d93636;
+}
+
+.speak {
+  background: #753bbd;
+}
+
+.result {
+  background: #f0f6ff;
+  padding: 15px;
+  min-height: 90px;
+  margin-top: 10px;
+  border-radius: 9px;
+  overflow-wrap: anywhere;
+  font-size: 18px;
+}
+
+.status {
+  text-align: center;
+  margin-top: 15px;
+  color: #07864c;
+  font-weight: bold;
+}
+
+.note {
+  font-size: 13px;
+  color: #777;
+  text-align: center;
+  margin-top: 20px;
+}
 </style>
 </head>
+
 <body>
 
-<header>
-<h1>🌍 WorldTalk AI</h1>
-<p>Connect The World Without Language Barriers</p>
-</header>
+<div class="container">
 
-<main>
+<h1>🌍 Smart Live Translator</h1>
 
-<div class="card">
-<h2>🌐 Language Translation</h2>
+<p class="subtitle">
+চার ভাষায় কথা বলুন এবং অনুবাদ শুনুন
+</p>
 
-<label>আপনার ভাষা</label>
+<label>যে ভাষায় কথা বলবেন</label>
+
 <select id="from">
 <option value="bn-BD">বাংলা</option>
 <option value="en-US">English</option>
-<option value="de-DE">German</option>
-  <option value="es-ES">Spanish</option>
-<option value="ar-SA">Arabic</option>
-<option value="hi-IN">Hindi</option>
+<option value="de-DE">Deutsch (German)</option>
+<option value="es-ES">Español (Spanish)</option>
 </select>
 
-<label>অন্য ভাষা</label>
-  <select id="to">
-<option value="en-US">English</option>
-<option value="bn-BD">বাংলা</option>
-<option value="de-DE">German (Deutsch)</option>
-<option value="es-ES">Spanish (Español)</option>
-<option value="ar-SA">Arabic (العربية)</option>
-<option value="hi-IN">Hindi (हिन्दी)</option>
-<option value="fr-FR">French (Français)</option>
-<option value="ja-JP">Japanese (日本語)</option>
-  </select>
-<option value="en-US">English</option>
-<option value="bn-BD">বাংলা</option>
-<option value="de-DE">German</option>
-<option value="ar-SA">Arabic</option>
-<option value="hi-IN">Hindi</option>
-</select>
-
-<textarea id="speech" placeholder="এখানে আপনার কথা দেখা যাবে"></textarea>
-
-<button onclick="startSpeech()">🎤 কথা বলা শুরু করুন</button>
-<button onclick="stopSpeech()">⏹ বন্ধ করুন</button>
-
-<p id="status">প্রস্তুত</p>
-</div>
-
-<div class="card">
-<h2>🎥 Video Conference</h2>
-<p>সর্বোচ্চ ১০ জনের কনফারেন্সের লক্ষ্য।</p>
-<button class="green" onclick="window.open('https://meet.google.com/new','_blank')">
-Google Meet খুলুন
+<button class="swap" onclick="swapLanguages()">
+⇅ ভাষা পরিবর্তন করুন
 </button>
+
+<label>যে ভাষায় অনুবাদ চান</label>
+
+<select id="to">
+<option value="en-US">English</option>
+<option value="bn-BD">বাংলা</option>
+<option value="de-DE">Deutsch (German)</option>
+<option value="es-ES">Español (Spanish)</option>
+</select>
+
+<label>আপনার কথা</label>
+
+<textarea id="speech"
+placeholder="মাইক্রোফোনে কথা বললে এখানে লেখা আসবে..."></textarea>
+
+<button class="mic" onclick="startSpeech()">
+🎤 কথা বলা শুরু করুন
+</button>
+
+<button class="stop" onclick="stopSpeech()">
+⏹ কথা বলা বন্ধ করুন
+</button>
+
+<button onclick="translateText()">
+🌐 অনুবাদ করুন
+</button>
+
+<label>অনুবাদের ফলাফল</label>
+
+<div id="translationResult" class="result">
+অনুবাদ এখানে দেখা যাবে
 </div>
 
-<div class="card">
-<h2>🔐 Security</h2>
-<p>নিরাপদ যোগাযোগ আমাদের প্রধান লক্ষ্য।</p>
+<button class="speak" onclick="speakTranslation()">
+🔊 অনুবাদ শুনুন
+</button>
+
+<button class="swap" onclick="clearText()">
+🗑 লেখা মুছুন
+</button>
+
+<div id="status" class="status">
+Ready
 </div>
 
-</main>
+<p class="note">
+Smart Live Translator | Version 2.0
+</p>
+
+</div>
 
 <script>
-let recognition;
 
-function startSpeech(){
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let recognition = null;
+let lastTranslation = "";
 
-if(!SR){
-alert("এই ব্রাউজারে Speech Recognition সমর্থিত নয়।");
-return;
+function languageCode(value) {
+  return value.split("-")[0];
 }
 
-recognition=new SR();
-recognition.lang=document.getElementById("from").value;
-recognition.continuous=true;
-recognition.interimResults=true;
+function swapLanguages() {
 
-recognition.onresult=function(e){
-let result="";
-for(let i=0;i<e.results.length;i++){
-result+=e.results[i][0].transcript+" ";
-}
-document.getElementById("speech").value=result;
-};
+  const from = document.getElementById("from");
+  const to = document.getElementById("to");
 
-recognition.onstart=()=>{
-document.getElementById("status").innerText="Listening...";
-};
-
-recognition.onerror=()=>{
-document.getElementById("status").innerText="Microphone error";
-};
-
-recognition.start();
+  const oldFrom = from.value;
+  from.value = to.value;
+  to.value = oldFrom;
 }
 
-function stopSpeech(){
-if(recognition){
-recognition.stop();
-document.getElementById("status").innerText="Stopped";
-}
-}
-</script>
-<script>
-async function translateAndSpeak(text) {
-  const target = document.getElementById("targetLanguage").value;
-
-  try {
-    const url = "https://api.mymemory.translated.net/get?q="
-      + encodeURIComponent(text)
-      + "&langpair=bn|" + target;
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    const translated = data.responseData.translatedText;
-
-    document.getElementById("translationResult").innerText = translated;
-
-    const speech = new SpeechSynthesisUtterance(translated);
-    speech.lang = target === "de" ? "de-DE"
-      : target === "es" ? "es-ES" : "en-US";
-
-    speechSynthesis.speak(speech);
-
-  } catch (error) {
-    alert("অনুবাদ করা যাচ্ছে না। ইন্টারনেট সংযোগ পরীক্ষা করুন।");
-  }
-}
-</script>
-  <script>
 function startSpeech() {
-  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 
-  recognition.lang = "bn-BD";
+  const SR =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  if (!SR) {
+    alert("আপনার ব্রাউজার Speech Recognition সমর্থন করছে না। Chrome ব্যবহার করুন।");
+    return;
+  }
+
+  if (recognition) {
+    recognition.abort();
+  }
+
+  recognition = new SR();
+
+  recognition.lang =
+    document.getElementById("from").value;
+
   recognition.continuous = true;
   recognition.interimResults = false;
 
-  recognition.onresult = function(event) {
-    const text = event.results[event.results.length - 1][0].transcript;
-
-    document.getElementById("speech").value = text;
-
-    translateAndSpeak(text);
+  recognition.onstart = function() {
+    document.getElementById("status").innerText =
+      "🎤 Listening...";
   };
 
-  recognition.start();
+  recognition.onresult = function(event) {
 
-  window.currentRecognition = recognition;
+    let newText = "";
+
+    for (
+      let i = event.resultIndex;
+      i < event.results.length;
+      i++
+    ) {
+
+      if (event.results[i].isFinal) {
+        newText += event.results[i][0].transcript + " ";
+      }
+    }
+
+    if (newText.trim()) {
+
+      const box = document.getElementById("speech");
+
+      box.value += newText;
+
+      translateAndSpeak(newText.trim());
+    }
+  };
+
+  recognition.onerror = function(event) {
+
+    document.getElementById("status").innerText =
+      "Microphone error: " + event.error;
+  };
+
+  recognition.onend = function() {
+
+    document.getElementById("status").innerText =
+      "Listening stopped";
+  };
+
+  try {
+    recognition.start();
+  } catch(error) {
+    document.getElementById("status").innerText =
+      "Microphone could not start";
+  }
 }
 
 function stopSpeech() {
-  if (window.currentRecognition) {
-    window.currentRecognition.stop();
+
+  if (recognition) {
+    recognition.stop();
+  }
+
+  window.speechSynthesis.cancel();
+
+  document.getElementById("status").innerText =
+    "Stopped";
+}
+
+async function translateText() {
+
+  const text =
+    document.getElementById("speech").value.trim();
+
+  if (!text) {
+    alert("আগে কিছু কথা বলুন অথবা লিখুন।");
+    return;
+  }
+
+  await translateAndSpeak(text);
+}
+
+async function translateAndSpeak(text) {
+
+  const from =
+    languageCode(document.getElementById("from").value);
+
+  const to =
+    languageCode(document.getElementById("to").value);
+
+  if (from === to) {
+    alert("দুটি ভিন্ন ভাষা নির্বাচন করুন।");
+    return;
+  }
+
+  document.getElementById("status").innerText =
+    "Translating...";
+
+  try {
+
+    const url =
+      "https://api.mymemory.translated.net/get?q=" +
+      encodeURIComponent(text) +
+      "&langpair=" + from + "|" + to;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Translation server error");
+    }
+
+    const data = await response.json();
+
+    if (
+      data.responseStatus !== 200 ||
+      !data.responseData ||
+      !data.responseData.translatedText
+    ) {
+      throw new Error("Translation unavailable");
+    }
+
+    lastTranslation =
+      data.responseData.translatedText;
+
+    document.getElementById("translationResult").innerText =
+      lastTranslation;
+
+    document.getElementById("status").innerText =
+      "Translation successful";
+
+    speakTranslation();
+
+  } catch(error) {
+
+    document.getElementById("status").innerText =
+      "Translation failed";
+
+    alert("অনুবাদ করা যাচ্ছে না। ইন্টারনেট সংযোগ পরীক্ষা করুন।");
   }
 }
+
+function speakTranslation() {
+
+  if (!lastTranslation) {
+    alert("আগে অনুবাদ করুন।");
+    return;
+  }
+
+  window.speechSynthesis.cancel();
+
+  const voice =
+    new SpeechSynthesisUtterance(lastTranslation);
+
+  voice.lang =
+    document.getElementById("to").value;
+
+  voice.rate = 0.9;
+
+  window.speechSynthesis.speak(voice);
+}
+
+function clearText() {
+
+  document.getElementById("speech").value = "";
+
+  document.getElementById("translationResult").innerText =
+    "অনুবাদ এখানে দেখা যাবে";
+
+  lastTranslation = "";
+
+  window.speechSynthesis.cancel();
+
+  document.getElementById("status").innerText =
+    "Ready";
+}
+
+</script>
+
 </body>
 </html>
